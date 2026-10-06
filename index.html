@@ -24,6 +24,10 @@
                 <div id="envIndicator" class="status-indicator online">
                     <span class="dot"></span> <span id="envText">Bulut Modu (7/24 Aktif)</span>
                 </div>
+                <button id="btnSettings" class="btn btn-secondary btn-sm" title="Bulut Motoru Ayarları">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    Motor Ayarı
+                </button>
                 <button id="btnShareLink" class="btn btn-secondary btn-sm" title="Site Linkini Kopyala">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
                     Linki Paylaş
@@ -258,9 +262,43 @@
                     <button id="btnApplyBulk" class="btn btn-primary">Listeye Dağıt</button>
                 </div>
             </div>
+        <!-- BULUT MOTORU AYARLARI MODALI -->
+        <div id="settingsModal" class="modal-backdrop">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3>⚙️ Bulut MP3 Motoru Yapılandırması</h3>
+                    <button id="btnCloseSettingsModal" class="btn-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size: 13px; color: var(--text-secondary);">
+                        Sitenin arkadaşına yeni sekme açmadan doğrudan MP3 indirebilmesi için bağlı olduğu bulut motoru adresi:
+                    </p>
+                    <div class="input-action-group">
+                        <input type="text" id="cloudApiInput" placeholder="https://youtube-mp3-engine.onrender.com" class="form-input">
+                        <button id="btnTestCloudApi" class="btn btn-secondary">Test Et</button>
+                    </div>
+                    <div id="cloudApiStatus" style="font-size: 12px; font-family: var(--font-mono); margin-top: 6px;"></div>
+
+                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 16px 0;">
+
+                    <div style="background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.3); border-radius: var(--radius-md); padding: 14px;">
+                        <h4 style="font-size: 13px; color: var(--accent-orange); margin-bottom: 6px;">🚀 Ücretsiz Bulut Motorunu 1-Tıkla Aç</h4>
+                        <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 12px;">
+                            Render.com üzerinden GitHub hesabınla giriş yapıp tek tıkla 7/24 çalışan MP3 motorunu ücretsiz başlatabilirsin:
+                        </p>
+                        <a href="https://render.com/deploy?repo=https://github.com/onthewaygames/youtube-downloader" target="_blank" class="btn btn-accent w-100" style="text-decoration: none;">
+                            Render'a 1-Tıkla Ücretsiz Dağıt (Deploy)
+                        </a>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnCancelSettings" class="btn btn-ghost">Vazgeç</button>
+                    <button id="btnSaveSettings" class="btn btn-primary">Kaydet & Bağla</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="app.js?v=2.2"></script>
+    <script src="app.js?v=3.0"></script>
 </body>
 </html>

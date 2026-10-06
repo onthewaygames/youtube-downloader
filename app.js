@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================================
-    // 3. İNDİRME MOTORU
+    // 3. İNDİRME MOTORU (YENİ SEKME AÇMAZ — DOĞRUDAN CİHAZA İNDİRİR)
     // ==========================================================================
     async function downloadSingleRow(row) {
         const input = row.querySelector('.row-input');
@@ -246,43 +246,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = row.dataset.title || "YouTube MP3";
         updateRowStatus(row, 'downloading', 'MP3 İndiriliyor...');
 
-        // 1. Yerel Mod (Localhost Server)
-        if (isLocalMode) {
+        // Aktif backend URL'sini belirle
+        let activeBackend = localStorage.getItem('yt_cloud_api_url');
+        if (!activeBackend && isLocalMode) {
+            activeBackend = 'http://localhost:5050';
+        }
+
+        // Eğer backend tanımlıysa doğrudan sunucudan tertemiz MP3 indir (Sıfır yeni sekme!)
+        if (activeBackend) {
             try {
-                const res = await fetch('/api/download', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        url: url,
-                        playlist: globalPlaylistSelect.value,
-                        format: 'mp3'
-                    })
-                });
-                const data = await res.json();
-                if (data.status === 'started' && data.task_id) {
-                    pollLocalProgress(row, data.task_id, title);
-                    return;
-                }
+                const cleanBackend = activeBackend.replace(/\/$/, '');
+                const downloadEndpoint = `${cleanBackend}/api/download?url=${encodeURIComponent(url)}`;
+                
+                // Sayfa içi görünmez indirme tetikle (YENİ SEKME AÇMAZ!)
+                const tempLink = document.createElement('a');
+                tempLink.href = downloadEndpoint;
+                tempLink.setAttribute('download', `${title}.mp3`);
+                document.body.appendChild(tempLink);
+                tempLink.click();
+                tempLink.remove();
+
+                updateRowStatus(row, 'completed', 'MP3 İndirildi ✓');
+                addDownloadHistory(title, globalPlaylistSelect.value);
+                return;
             } catch (err) {
-                console.warn("Yerel sunucuya ulaşılamadı, bulut köprüsüne geçiliyor.");
+                console.warn("Bulut motoru hatası:", err);
             }
         }
 
-        // 2. Bulut / GitHub Pages Modu (Arkadaşının 7/24 kullandığı doğrudan MP3 dönüştürme)
-        try {
-            const directConverterUrl = `https://www.youtubepp.com/watch?v=${videoId}`;
-            const win = window.open(directConverterUrl, '_blank');
-            if (win) {
-                win.focus();
-            }
-
-            updateRowStatus(row, 'completed', 'İndirme Açıldı ✓');
-            addDownloadHistory(title, globalPlaylistSelect.value);
-
-        } catch (e) {
-            console.error("İndirme hatası:", e);
-            updateRowStatus(row, 'error', 'Hata Oluştu');
-        }
+        // Eğer henüz bir bulut motoru bağlanmadıysa kullanıcıya ayar penceresini aç
+        updateRowStatus(row, 'loading', 'Motor Bekleniyor');
+        openSettingsModal();
+        alert('Arkadaşının yeni sekme açmadan doğrudan MP3 indirebilmesi için lütfen 1-Tıkla Render Bulut Motorunu bağlayın.');
     }
 
     function pollLocalProgress(row, taskId, title) {
@@ -558,7 +553,85 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ==========================================================================
+    // 6. BULUT MOTORU AYARLARI MODALI
+    // ==========================================================================
+    const btnSettings = document.getElementById('btnSettings');
+    const settingsModal = document.getElementById('settingsModal');
+    const btnCloseSettingsModal = document.getElementById('btnCloseSettingsModal');
+    const btnCancelSettings = document.getElementById('btnCancelSettings');
+    const btnSaveSettings = document.getElementById('btnSaveSettings');
+    const cloudApiInput = document.getElementById('cloudApiInput');
+    const btnTestCloudApi = document.getElementById('btnTestCloudApi');
+    const cloudApiStatus = document.getElementById('cloudApiStatus');
+
+    function openSettingsModal() {
+        if (!settingsModal) return;
+        if (cloudApiInput) {
+            cloudApiInput.value = localStorage.getItem('yt_cloud_api_url') || '';
+        }
+        if (cloudApiStatus) {
+            cloudApiStatus.textContent = '';
+        }
+        settingsModal.classList.add('open');
+    }
+
+    function closeSettingsModal() {
+        if (!settingsModal) return;
+        settingsModal.classList.remove('open');
+    }
+
+    if (btnSettings) btnSettings.onclick = openSettingsModal;
+    if (btnCloseSettingsModal) btnCloseSettingsModal.onclick = closeSettingsModal;
+    if (btnCancelSettings) btnCancelSettings.onclick = closeSettingsModal;
+
+    if (btnTestCloudApi) {
+        btnTestCloudApi.onclick = async () => {
+            const val = cloudApiInput.value.trim().replace(/\/$/, '');
+            if (!val) {
+                cloudApiStatus.style.color = 'var(--accent-red)';
+                cloudApiStatus.textContent = 'Lütfen bir URL girin.';
+                return;
+            }
+            cloudApiStatus.style.color = 'var(--accent-amber)';
+            cloudApiStatus.textContent = 'Bağlantı test ediliyor...';
+            try {
+                const res = await fetch(`${val}/`);
+                if (res.ok) {
+                    cloudApiStatus.style.color = 'var(--accent-green)';
+                    cloudApiStatus.textContent = '✓ Motor Aktif ve Yanıt Veriyor!';
+                } else {
+                    cloudApiStatus.style.color = 'var(--accent-red)';
+                    cloudApiStatus.textContent = `Hata: HTTP ${res.status}`;
+                }
+            } catch (e) {
+                cloudApiStatus.style.color = 'var(--accent-red)';
+                cloudApiStatus.textContent = 'Bağlantı kurulamadı. URL hatalı veya sunucu henüz açılmamış.';
+            }
+        };
+    }
+
+    if (btnSaveSettings) {
+        btnSaveSettings.onclick = () => {
+            const val = cloudApiInput.value.trim().replace(/\/$/, '');
+            if (val) {
+                localStorage.setItem('yt_cloud_api_url', val);
+                if (envText) envText.textContent = "🟢 Bulut Motoru Bağlı";
+                alert('✓ Bulut motoru adresi kaydedildi!');
+            } else {
+                localStorage.removeItem('yt_cloud_api_url');
+                if (envText) envText.textContent = "Bulut Modu (7/24 Canlı)";
+            }
+            closeSettingsModal();
+        };
+    }
+
     // Başlatma
+    const savedApi = localStorage.getItem('yt_cloud_api_url');
+    if (savedApi && envText) {
+        envText.textContent = "🟢 Bulut Motoru Bağlı";
+    }
+
     initExistingRows();
     renderPlaylistsUI();
 });
