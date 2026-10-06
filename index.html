@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube MP4 Downloader & Playlist Studio</title>
+    <title>YouTube MP3 Studio — Çoklu Müzik İndirici & Playlist</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,19 +14,19 @@
         <!-- ÜST BAŞLIK BARI -->
         <header class="app-header">
             <div class="header-brand">
-                <div class="brand-badge">YT // MP4</div>
+                <div class="brand-badge">YT // MP3</div>
                 <div class="brand-titles">
-                    <h1>YouTube Studio Downloader</h1>
-                    <span class="brand-subtitle">Çoklu MP4/MP3 İndirme & Otomatik Playlist Düzenleyici</span>
+                    <h1>YouTube MP3 Studio</h1>
+                    <span class="brand-subtitle">Çoklu Müzik İndirme, Otomatik Başlık Yakalama & Playlist Yöneticisi</span>
                 </div>
             </div>
             <div class="header-status">
-                <div class="status-indicator online">
-                    <span class="dot"></span> Sunucu Aktif (Port 5050)
+                <div id="envIndicator" class="status-indicator online">
+                    <span class="dot"></span> <span id="envText">Bulut Modu (7/24 Aktif)</span>
                 </div>
-                <button id="btnOpenRootFolder" class="btn btn-secondary btn-sm" title="Downloads Ana Klasörünü Aç">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                    Downloads Klasörü
+                <button id="btnShareLink" class="btn btn-secondary btn-sm" title="Site Linkini Kopyala">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                    Linki Paylaş
                 </button>
             </div>
         </header>
@@ -39,19 +39,17 @@
                 <div class="control-panel">
                     <div class="panel-group">
                         <div class="control-item">
-                            <label for="globalPlaylistSelect">🎯 Hedef Playlist:</label>
+                            <label for="globalPlaylistSelect">🎯 Aktif Playlist / Kategori:</label>
                             <select id="globalPlaylistSelect" class="form-select">
-                                <option value="">Genel İndirilenler (Kök)</option>
+                                <option value="Genel">Genel Müzikler</option>
                             </select>
                         </div>
                         <div class="control-item">
-                            <label for="globalFormatSelect">🎬 Çözünürlük / Format:</label>
-                            <select id="globalFormatSelect" class="form-select">
-                                <option value="mp4" selected>MP4 — En Yüksek Kalite</option>
-                                <option value="1080p">MP4 — 1080p Full HD</option>
-                                <option value="720p">MP4 — 720p HD</option>
-                                <option value="mp3">MP3 — Ses (320 kbps)</option>
-                            </select>
+                            <label>🎵 Ses Formatı:</label>
+                            <div class="quality-badge">
+                                <span class="format-tag">MP3</span>
+                                <span class="bitrate-tag">320 kbps Saf Ses</span>
+                            </div>
                         </div>
                     </div>
 
@@ -62,11 +60,11 @@
                         </button>
                         <button id="btnAddRow" class="btn btn-secondary" title="Yeni bir link satırı ekle">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            Link Ekle
+                            + Link Ekle
                         </button>
-                        <button id="btnDownloadAll" class="btn btn-primary" title="Listelenen tüm linkleri sırayla indir">
+                        <button id="btnDownloadAll" class="btn btn-primary" title="Listelenen tüm linkleri MP3 olarak indir">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            Tümünü İndir
+                            Tümünü İndir (MP3)
                         </button>
                     </div>
                 </div>
@@ -75,13 +73,13 @@
                 <div class="links-container">
                     <div class="links-header">
                         <span>#</span>
-                        <span>YouTube Video URL</span>
-                        <span>Format</span>
-                        <span>Durum / İlerleme</span>
+                        <span>YouTube Şarkı / Video URL</span>
+                        <span>Şarkı Bilgisi & Önizleme</span>
+                        <span>Durum</span>
                         <span>İşlem</span>
                     </div>
                     <div id="linksList" class="links-list">
-                        <!-- 6 varsayılan satır JS tarafından dinamik oluşturulacak -->
+                        <!-- 6 varsayılan satır dinamik oluşturulacak -->
                     </div>
                 </div>
 
@@ -89,58 +87,33 @@
                 <div class="links-footer">
                     <button id="btnAddMoreRows" class="btn btn-ghost">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        + 3 Satır Daha Ekle
+                        + 3 Sıra Daha Ekle
                     </button>
                     <button id="btnClearCompleted" class="btn btn-ghost">Tamamlananları Temizle</button>
                     <button id="btnResetAll" class="btn btn-ghost text-danger">Tümünü Sıfırla (6 Sıra)</button>
                 </div>
             </section>
 
-            <!-- SAĞ SÜTUN: PLAYLIST VE DOSYA ORGANİZASYONU -->
+            <!-- SAĞ SÜTUN: PLAYLIST VE ARŞİV -->
             <aside class="sidebar-section">
                 <!-- YENİ PLAYLIST OLUŞTURMA -->
                 <div class="card playlist-creator-card">
                     <div class="card-header">
                         <h3>📂 Çalma Listeleri (Playlists)</h3>
-                        <span class="badge" id="playlistCountBadge">0 Liste</span>
+                        <span class="badge" id="playlistCountBadge">1 Liste</span>
                     </div>
                     <div class="card-body">
                         <div class="input-action-group">
-                            <input type="text" id="newPlaylistInput" placeholder="Yeni Playlist Adı (Örn: Müzikler)..." class="form-input">
+                            <input type="text" id="newPlaylistInput" placeholder="Yeni Playlist Adı (Örn: Arabesk, Spor, Lo-Fi)..." class="form-input">
                             <button id="btnCreatePlaylist" class="btn btn-accent">Oluştur</button>
                         </div>
-                    </div>
-                </div>
-
-                <!-- LİSTEDEN LİSTEYİ ÇEK / DÜZENLE MODÜLÜ -->
-                <div class="card organize-card">
-                    <div class="card-header">
-                        <h3>⚡ Listeden Listeyi Çek / Taşı</h3>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-desc">
-                            İndirilmiş tüm dağınık dosyaları tarar ve seçtiğin çalma listesinin klasörü altına taşır.
-                        </p>
-                        <div class="organize-controls">
-                            <select id="organizeTargetSelect" class="form-select">
-                                <option value="">Hedef Playlist Seçin...</option>
-                            </select>
-                            <button id="btnOrganizeFiles" class="btn btn-secondary w-100">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-                                Dosyaları Bu Listeye Taşı
-                            </button>
-                        </div>
-                        <div id="organizeResult" class="organize-feedback"></div>
                     </div>
                 </div>
 
                 <!-- PLAYLIST KARTLARI LİSTESİ -->
                 <div class="card playlist-list-card">
                     <div class="card-header">
-                        <h3>Kayıtlı Klasörler</h3>
-                        <button id="btnRefreshPlaylists" class="btn-icon" title="Yenile">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                        </button>
+                        <h3>Oluşturulan Çalma Listeleri</h3>
                     </div>
                     <div class="card-body p-0">
                         <div id="playlistsList" class="playlists-container">
@@ -149,15 +122,26 @@
                     </div>
                 </div>
 
-                <!-- AKTİF KLASÖR İÇERİĞİ / İNDİRİLENLER KÜTÜPHANESİ -->
+                <!-- İNDİRME GEÇMİŞİ / LİSTESİ -->
                 <div class="card files-card">
                     <div class="card-header">
-                        <h3 id="currentFolderTitle">📁 İndirilen Dosyalar</h3>
+                        <h3 id="currentFolderTitle">🎵 Bu Oturumda İndirilenler</h3>
+                        <span class="badge" id="downloadedCountBadge">0 MP3</span>
                     </div>
                     <div class="card-body p-0">
                         <div id="folderFilesList" class="folder-files-container">
                             <!-- Dosyalar listelenecek -->
                         </div>
+                    </div>
+                </div>
+
+                <!-- BİLGİ KARTI -->
+                <div class="card info-card">
+                    <div class="card-body">
+                        <div class="info-badge">💡 Arkadaşına Özel 7/24 Web Modu</div>
+                        <p class="info-text">
+                            Bu sayfa GitHub Pages üzerinden doğrudan çalışır. Sen veya arkadaşın YouTube linkini yapıştırdığında şarkı otomatik bulunur ve tek tıkla 320 kbps MP3 olarak cihaza iner.
+                        </p>
                     </div>
                 </div>
             </aside>
@@ -171,12 +155,12 @@
                     <button id="btnCloseBulkModal" class="btn-close">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p>Her satıra bir YouTube linki gelecek şekilde yapıştırın:</p>
+                    <p>Her satıra bir YouTube linki gelecek şekilde alt alta yapıştırın:</p>
                     <textarea id="bulkTextarea" placeholder="https://www.youtube.com/watch?v=...&#10;https://www.youtube.com/watch?v=...&#10;https://youtu.be/..."></textarea>
                 </div>
                 <div class="modal-footer">
                     <button id="btnCancelBulk" class="btn btn-ghost">Vazgeç</button>
-                    <button id="btnApplyBulk" class="btn btn-primary">Listeye Ekle</button>
+                    <button id="btnApplyBulk" class="btn btn-primary">Listeye Dağıt</button>
                 </div>
             </div>
         </div>

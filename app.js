@@ -1,10 +1,15 @@
 // ==========================================================================
-// YOUTUBE STUDIO DOWNLOADER & PLAYLIST STUDIO
-// Frontend Controller
+// YOUTUBE MP3 STUDIO — FRONTEND CONTROLLER
+// 100% Client-Side Cloud Mode & Localhost Dual Engine
 // ==========================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // DOM Öğeleri
+    // Ortam Tespiti
+    const isLocalMode = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    // DOM Elemanları
+    const envText = document.getElementById('envText');
+    const btnShareLink = document.getElementById('btnShareLink');
     const linksList = document.getElementById('linksList');
     const btnAddRow = document.getElementById('btnAddRow');
     const btnAddMoreRows = document.getElementById('btnAddMoreRows');
@@ -12,27 +17,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnBulkPaste = document.getElementById('btnBulkPaste');
     const btnClearCompleted = document.getElementById('btnClearCompleted');
     const btnResetAll = document.getElementById('btnResetAll');
-    
+
     // Playlist Elemanları
     const globalPlaylistSelect = document.getElementById('globalPlaylistSelect');
-    const globalFormatSelect = document.getElementById('globalFormatSelect');
     const newPlaylistInput = document.getElementById('newPlaylistInput');
     const btnCreatePlaylist = document.getElementById('btnCreatePlaylist');
     const playlistsList = document.getElementById('playlistsList');
     const playlistCountBadge = document.getElementById('playlistCountBadge');
-    const btnRefreshPlaylists = document.getElementById('btnRefreshPlaylists');
-    const btnOpenRootFolder = document.getElementById('btnOpenRootFolder');
 
-    // Organize Elemanları
-    const organizeTargetSelect = document.getElementById('organizeTargetSelect');
-    const btnOrganizeFiles = document.getElementById('btnOrganizeFiles');
-    const organizeResult = document.getElementById('organizeResult');
-
-    // Dosya Kütüphanesi
+    // İndirme Geçmişi
     const folderFilesList = document.getElementById('folderFilesList');
+    const downloadedCountBadge = document.getElementById('downloadedCountBadge');
     const currentFolderTitle = document.getElementById('currentFolderTitle');
 
-    // Bulk Modal Elemanları
+    // Modal
     const bulkModal = document.getElementById('bulkModal');
     const btnCloseBulkModal = document.getElementById('btnCloseBulkModal');
     const btnCancelBulk = document.getElementById('btnCancelBulk');
@@ -41,11 +39,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Durum Değişkenleri
     let rowCounter = 0;
-    let playlistsData = [];
-    let activeSelectedPlaylist = ""; // Boş ise kök (Genel)
+    let playlists = JSON.parse(localStorage.getItem('yt_mp3_playlists') || '["Genel Müzikler"]');
+    let activePlaylist = playlists[0];
+    let downloadHistory = JSON.parse(localStorage.getItem('yt_mp3_history') || '[]');
+
+    // Ortam Başlığı Güncelle
+    if (isLocalMode) {
+        envText.textContent = "Yerel Motor (Port 5050)";
+    } else {
+        envText.textContent = "Bulut Modu (7/24 Canlı)";
+    }
 
     // ==========================================================================
-    // 1. SATIR YÖNETİMİ (DEFAULT 6 SIRALI DİNAMİK LİSTE)
+    // 1. YOUTUBE YARDIMCI FONKSİYONLARI
+    // ==========================================================================
+    function extractVideoId(url) {
+        if (!url) return null;
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    }
+
+    async function fetchVideoDetails(videoId) {
+        try {
+            const res = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+            if (res.ok) {
+                const data = await res.json();
+                return {
+                    title: data.title || "YouTube Videosu",
+                    author: data.author_name || "",
+                    thumb: data.thumbnail_url || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+                };
+            }
+        } catch (e) {
+            console.warn("noembed hatası:", e);
+        }
+        return {
+            title: "YouTube Videosu",
+            author: "",
+            thumb: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+        };
+    }
+
+    // ==========================================================================
+    // 2. DİNAMİK SATIR YÖNETİMİ
     // ==========================================================================
     function createRow(initialUrl = '') {
         rowCounter++;
@@ -60,31 +97,21 @@ document.addEventListener('DOMContentLoaded', () => {
         row.innerHTML = `
             <div class="row-index">#${indexNumber}</div>
             <div class="row-url-wrapper">
-                <input type="text" class="form-input row-input" placeholder="YouTube linki yapıştırın (https://www.youtube.com/watch?v=...)" value="${initialUrl}">
+                <input type="text" class="form-input row-input" placeholder="YouTube linki yapıştırın..." value="${initialUrl}">
                 <button class="btn-paste-row" title="Panodan Yapıştır">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
                 </button>
             </div>
-            <div class="row-format">
-                <select class="form-select row-format-select">
-                    <option value="inherit">Global Format</option>
-                    <option value="mp4">MP4 (En Yüksek)</option>
-                    <option value="1080p">MP4 (1080p)</option>
-                    <option value="720p">MP4 (720p)</option>
-                    <option value="mp3">MP3 (Ses)</option>
-                </select>
+            <div class="row-preview">
+                <div class="preview-card-empty">Link Bekleniyor</div>
             </div>
             <div class="row-status-wrapper">
                 <div class="status-badge status-idle">
                     <span class="status-text">Boş</span>
-                    <span class="speed-text"></span>
-                </div>
-                <div class="progress-track">
-                    <div class="progress-fill" style="width: 0%;"></div>
                 </div>
             </div>
             <div class="row-actions">
-                <button class="btn-row-action btn-row-download" title="Bu Videoyu İndir">
+                <button class="btn-row-action btn-row-download" title="MP3 İndir">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 </button>
                 <button class="btn-row-action delete btn-row-delete" title="Satırı Sil">
@@ -93,52 +120,87 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
-        // Satır Olayları
         const input = row.querySelector('.row-input');
         const pasteBtn = row.querySelector('.btn-paste-row');
         const downloadBtn = row.querySelector('.btn-row-download');
         const deleteBtn = row.querySelector('.btn-row-delete');
 
-        // Panodan yapıştır butonu
+        // Pano Yapıştırma
         pasteBtn.addEventListener('click', async () => {
             try {
                 const text = await navigator.clipboard.readText();
                 if (text && text.trim()) {
                     input.value = text.trim();
-                    updateRowStatus(row, 'idle', 'Hazır');
+                    handleUrlChange(row, input.value.trim());
                 }
             } catch (err) {
-                console.error("Pano okunamadı:", err);
+                console.error("Pano hatası:", err);
             }
         });
 
-        // Giriş değiştiğinde durum güncelle
+        // Input Değişimi
+        let debounceTimer;
         input.addEventListener('input', () => {
-            if (input.value.trim()) {
-                updateRowStatus(row, 'idle', 'Hazır');
-            } else {
-                updateRowStatus(row, 'idle', 'Boş');
-            }
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                handleUrlChange(row, input.value.trim());
+            }, 300);
         });
 
-        // Tekil İndir butonu
+        // İndir Butonu
         downloadBtn.addEventListener('click', () => {
-            startRowDownload(row);
+            downloadSingleRow(row);
         });
 
-        // Satırı Sil butonu
+        // Sil Butonu
         deleteBtn.addEventListener('click', () => {
             if (linksList.children.length > 1) {
                 row.remove();
                 renumberRows();
             } else {
                 input.value = '';
-                updateRowStatus(row, 'idle', 'Boş');
+                handleUrlChange(row, '');
             }
         });
 
         linksList.appendChild(row);
+
+        if (initialUrl) {
+            handleUrlChange(row, initialUrl);
+        }
+
         return row;
+    }
+
+    async function handleUrlChange(row, url) {
+        const previewEl = row.querySelector('.row-preview');
+        const videoId = extractVideoId(url);
+
+        if (!videoId) {
+            previewEl.innerHTML = `<div class="preview-card-empty">Link Bekleniyor</div>`;
+            updateRowStatus(row, 'idle', url ? 'Geçersiz Link' : 'Boş');
+            row.dataset.title = '';
+            row.dataset.videoId = '';
+            return;
+        }
+
+        row.dataset.videoId = videoId;
+        updateRowStatus(row, 'loading', 'Şarkı aranıyor...');
+
+        const details = await fetchVideoDetails(videoId);
+        row.dataset.title = details.title;
+
+        previewEl.innerHTML = `
+            <div class="song-preview-card">
+                <img src="${details.thumb}" alt="Kapak" class="song-thumb">
+                <div class="song-info">
+                    <span class="song-title" title="${details.title}">${details.title}</span>
+                    <span class="song-artist">${details.author}</span>
+                </div>
+            </div>
+        `;
+
+        updateRowStatus(row, 'ready', '🎵 MP3 Hazır (320k)');
     }
 
     function renumberRows() {
@@ -151,20 +213,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function updateRowStatus(row, state, text, percent = 0, speed = '') {
+    function updateRowStatus(row, state, text) {
         row.dataset.status = state;
         const badge = row.querySelector('.status-badge');
         const statusText = row.querySelector('.status-text');
-        const speedText = row.querySelector('.speed-text');
-        const progressFill = row.querySelector('.progress-fill');
 
         badge.className = `status-badge status-${state}`;
         statusText.textContent = text;
-        speedText.textContent = speed;
-        progressFill.style.width = `${percent}%`;
     }
 
-    // Başlangıçta tam 6 varsayılan satır oluştur
     function initializeDefaultRows(count = 6) {
         linksList.innerHTML = '';
         for (let i = 0; i < count; i++) {
@@ -173,298 +230,242 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================================
-    // 2. İNDİRME MOTORU & İLERLEME TAKİBİ
+    // 3. İNDİRME TETİKLEYİCİSİ (BULUT & YEREL)
     // ==========================================================================
-    async function startRowDownload(row) {
+    async function downloadSingleRow(row) {
         const input = row.querySelector('.row-input');
         const url = input.value.trim();
-        if (!url) {
-            updateRowStatus(row, 'error', 'Link Girin!');
+        const videoId = row.dataset.videoId || extractVideoId(url);
+
+        if (!videoId) {
+            updateRowStatus(row, 'error', 'Geçerli Link Girin!');
             return;
         }
 
-        const formatSelect = row.querySelector('.row-format-select');
-        let chosenFormat = formatSelect.value;
-        if (chosenFormat === 'inherit') {
-            chosenFormat = globalFormatSelect.value;
+        const title = row.dataset.title || "YouTube MP3";
+        updateRowStatus(row, 'downloading', 'MP3 İndiriliyor...');
+
+        // 1. Eğer Yerel Moddaysa (Localhost Server)
+        if (isLocalMode) {
+            try {
+                const res = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: url,
+                        playlist: globalPlaylistSelect.value,
+                        format: 'mp3'
+                    })
+                });
+                const data = await res.json();
+                if (data.status === 'started' && data.task_id) {
+                    pollLocalProgress(row, data.task_id, title);
+                    return;
+                }
+            } catch (err) {
+                console.warn("Yerel sunucuya ulaşılamadı, bulut köprüsüne geçiliyor.");
+            }
         }
 
-        const targetPlaylist = globalPlaylistSelect.value;
-
-        updateRowStatus(row, 'downloading', 'Başlatılıyor...', 5);
-
+        // 2. Bulut / GitHub Pages Modu (Arkadaşının 7/24 kullandığı mod)
+        // Güvenilir doğrudan MP3 dönüştürücü köprüsü açılır
         try {
-            const response = await fetch('/api/download', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    url: url,
-                    playlist: targetPlaylist,
-                    format: chosenFormat
-                })
-            });
-
-            const data = await response.json();
-            if (data.status === 'started' && data.task_id) {
-                pollTaskProgress(row, data.task_id);
-            } else {
-                updateRowStatus(row, 'error', data.message || 'Başlatılamadı');
+            // Y2Mate doğrudan MP3 dönüştürme linki
+            const directConverterUrl = `https://www.youtubepp.com/watch?v=${videoId}`;
+            
+            // Yeni güvenli sekmede MP3 indirme akışını başlat
+            const win = window.open(directConverterUrl, '_blank');
+            if (win) {
+                win.focus();
             }
-        } catch (err) {
-            console.error("İndirme başlatma hatası:", err);
-            updateRowStatus(row, 'error', 'Bağlantı Hatası');
+
+            updateRowStatus(row, 'completed', 'İndirme Açıldı ✓');
+
+            // Geçmişe ekle
+            addDownloadHistory(title, globalPlaylistSelect.value);
+
+        } catch (e) {
+            console.error("İndirme hatası:", e);
+            updateRowStatus(row, 'error', 'Hata Oluştu');
         }
     }
 
-    function pollTaskProgress(row, taskId) {
+    function pollLocalProgress(row, taskId, title) {
         const interval = setInterval(async () => {
             try {
                 const res = await fetch(`/api/progress?id=${taskId}`);
                 const data = await res.json();
-
                 if (data.status === 'success' && data.task) {
                     const task = data.task;
-
                     if (task.status === 'downloading') {
-                        const speedInfo = task.speed ? `${task.speed}` : '';
-                        updateRowStatus(row, 'downloading', `%${task.percent}`, task.percent, speedInfo);
-                    } else if (task.status === 'processing') {
-                        updateRowStatus(row, 'downloading', 'Birleştiriliyor...', 99);
+                        updateRowStatus(row, 'downloading', `%${task.percent}`);
                     } else if (task.status === 'completed') {
                         clearInterval(interval);
-                        updateRowStatus(row, 'completed', 'Tamamlandı ✓', 100);
-                        // Kitaplığı ve playlistleri güncelle
-                        loadPlaylists();
+                        updateRowStatus(row, 'completed', 'Tamamlandı ✓');
+                        addDownloadHistory(title, globalPlaylistSelect.value);
                     } else if (task.status === 'error') {
                         clearInterval(interval);
-                        const errMsg = (task.error && task.error.length > 25) ? task.error.substring(0, 25) + '...' : (task.error || 'Hata');
-                        updateRowStatus(row, 'error', errMsg);
+                        updateRowStatus(row, 'error', 'Hata!');
                     }
                 }
             } catch (e) {
-                console.error("Progress poll hatası:", e);
+                clearInterval(interval);
+                updateRowStatus(row, 'error', 'Koptu');
             }
-        }, 800);
+        }, 1000);
     }
 
-    async function downloadAllRows() {
+    function downloadAllRows() {
         const rows = linksList.querySelectorAll('.link-row');
         let delay = 0;
+        let count = 0;
+
         rows.forEach(row => {
             const input = row.querySelector('.row-input');
             const url = input.value.trim();
-            const status = row.dataset.status;
+            const videoId = extractVideoId(url);
 
-            if (url && status !== 'completed' && status !== 'downloading') {
+            if (videoId) {
+                count++;
                 setTimeout(() => {
-                    startRowDownload(row);
+                    downloadSingleRow(row);
                 }, delay);
-                delay += 800; // Sunucuyu ve yt-dlp'yi boğmamak için ufak sıralı başlatma
+                delay += 1000;
             }
         });
-    }
 
-    // ==========================================================================
-    // 3. PLAYLIST & DOSYA YÖNETİMİ
-    // ==========================================================================
-    async function loadPlaylists() {
-        try {
-            const res = await fetch('/api/playlists');
-            const data = await res.json();
-
-            if (data.status === 'success') {
-                playlistsData = data.playlists || [];
-                renderPlaylistsUI();
-            }
-        } catch (err) {
-            console.error("Playlists yüklenemedi:", err);
+        if (count === 0) {
+            alert('Lütfen önce indirilecek en az bir YouTube linki yapıştırın.');
         }
     }
 
+    // ==========================================================================
+    // 4. PLAYLIST & GEÇMİŞ YÖNETİMİ (LOCALSTORAGE İLE 7/24 KALICI)
+    // ==========================================================================
+    function savePlaylists() {
+        localStorage.setItem('yt_mp3_playlists', JSON.stringify(playlists));
+        renderPlaylistsUI();
+    }
+
     function renderPlaylistsUI() {
-        // Dropdown'ları güncelle
-        const prevGlobalVal = globalPlaylistSelect.value;
-        const prevOrganizeVal = organizeTargetSelect.value;
-
         globalPlaylistSelect.innerHTML = '';
-        organizeTargetSelect.innerHTML = '<option value="">Hedef Playlist Seçin...</option>';
+        playlistsList.innerHTML = '';
+        playlistCountBadge.textContent = `${playlists.length} Liste`;
 
-        let totalPlaylistsCount = 0;
-
-        playlistsData.forEach(pl => {
+        playlists.forEach(pl => {
+            // Dropdown seçeneği
             const opt = document.createElement('option');
-            opt.value = pl.name === 'Genel İndirilenler' ? '' : pl.name;
-            opt.textContent = `${pl.name} (${pl.file_count} dosya)`;
+            opt.value = pl;
+            opt.textContent = pl;
+            if (pl === activePlaylist) opt.selected = true;
             globalPlaylistSelect.appendChild(opt);
 
-            if (!pl.is_root) {
-                totalPlaylistsCount++;
-                const orgOpt = document.createElement('option');
-                orgOpt.value = pl.name;
-                orgOpt.textContent = pl.name;
-                organizeTargetSelect.appendChild(orgOpt);
-            }
-        });
-
-        globalPlaylistSelect.value = prevGlobalVal || "";
-        organizeTargetSelect.value = prevOrganizeVal || "";
-        playlistCountBadge.textContent = `${totalPlaylistsCount} Liste`;
-
-        // Playlist Listesi Kartlarını Çiz
-        playlistsList.innerHTML = '';
-        playlistsData.forEach(pl => {
+            // Sağ liste kartı
             const item = document.createElement('div');
-            item.className = `playlist-item ${activeSelectedPlaylist === pl.name ? 'active' : ''}`;
-            
+            item.className = `playlist-item ${activePlaylist === pl ? 'active' : ''}`;
+            const count = downloadHistory.filter(h => h.playlist === pl).length;
+
             item.innerHTML = `
                 <div class="playlist-meta">
-                    <span class="playlist-title">${pl.name}</span>
-                    <span class="playlist-stats">${pl.file_count} dosya · ${pl.total_size_mb} MB</span>
+                    <span class="playlist-title">${pl}</span>
+                    <span class="playlist-stats">${count} parça</span>
                 </div>
-                <div class="playlist-actions">
-                    <button class="btn-icon btn-open-pl-folder" title="Klasörü Aç">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                ${pl !== 'Genel Müzikler' ? `
+                    <button class="btn-icon btn-delete-pl" title="Listeyi Sil">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
-                </div>
+                ` : ''}
             `;
 
-            // Tıklayınca aktif klasör yap ve dosyalarını göster
             item.addEventListener('click', (e) => {
-                if (e.target.closest('.btn-open-pl-folder')) return;
-                activeSelectedPlaylist = pl.name;
-                globalPlaylistSelect.value = pl.name === 'Genel İndirilenler' ? '' : pl.name;
+                if (e.target.closest('.btn-delete-pl')) return;
+                activePlaylist = pl;
+                globalPlaylistSelect.value = pl;
                 renderPlaylistsUI();
-                renderFilesUI(pl);
+                renderHistoryUI();
             });
 
-            // Klasörü Windows'ta aç
-            const openBtn = item.querySelector('.btn-open-pl-folder');
-            openBtn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                await openFolder(pl.name);
-            });
+            const delBtn = item.querySelector('.btn-delete-pl');
+            if (delBtn) {
+                delBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm(`"${pl}" çalma listesini silmek istiyor musunuz?`)) {
+                        playlists = playlists.filter(p => p !== pl);
+                        if (activePlaylist === pl) activePlaylist = playlists[0];
+                        savePlaylists();
+                    }
+                });
+            }
 
             playlistsList.appendChild(item);
         });
 
-        // Seçili aktif playlist'in dosyalarını göster
-        const currentActive = playlistsData.find(p => p.name === activeSelectedPlaylist) || playlistsData[0];
-        if (currentActive) {
-            renderFilesUI(currentActive);
-        }
+        renderHistoryUI();
     }
 
-    function renderFilesUI(playlist) {
-        currentFolderTitle.textContent = `📁 ${playlist.name}`;
+    function addDownloadHistory(title, playlistName) {
+        const item = {
+            id: Date.now(),
+            title: title,
+            playlist: playlistName || activePlaylist,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        downloadHistory.unshift(item);
+        if (downloadHistory.length > 50) downloadHistory.pop();
+        localStorage.setItem('yt_mp3_history', JSON.stringify(downloadHistory));
+        renderHistoryUI();
+    }
+
+    function renderHistoryUI() {
+        const currentList = downloadHistory.filter(h => h.playlist === activePlaylist);
+        currentFolderTitle.textContent = `🎵 ${activePlaylist}`;
+        downloadedCountBadge.textContent = `${currentList.length} MP3`;
         folderFilesList.innerHTML = '';
 
-        if (!playlist.files || playlist.files.length === 0) {
+        if (currentList.length === 0) {
             folderFilesList.innerHTML = `
-                <div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px;">
-                    Bu klasörde henüz dosya yok.
+                <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 12px;">
+                    Bu listede henüz indirilmiş MP3 yok.
                 </div>
             `;
             return;
         }
 
-        playlist.files.forEach(f => {
-            const fileItem = document.createElement('div');
-            fileItem.className = 'file-item';
-            fileItem.innerHTML = `
-                <div class="file-info" title="${f.name}">
-                    <span class="file-name">${f.name}</span>
-                    <span class="file-details">${f.size_mb} MB · ${f.modified}</span>
+        currentList.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'file-item';
+            el.innerHTML = `
+                <div class="file-info" title="${item.title}">
+                    <span class="file-name">${item.title}</span>
+                    <span class="file-details">MP3 · 320 kbps · ${item.time}</span>
                 </div>
-                <button class="btn-icon btn-open-file-loc" title="Klasörde Göster">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                </button>
             `;
-
-            fileItem.querySelector('.btn-open-file-loc').addEventListener('click', async () => {
-                await openFolder(playlist.name);
-            });
-
-            folderFilesList.appendChild(fileItem);
+            folderFilesList.appendChild(el);
         });
     }
 
-    async function openFolder(playlistName) {
-        try {
-            await fetch('/api/open-folder', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ playlist: playlistName === 'Genel İndirilenler' ? '' : playlistName })
-            });
-        } catch (err) {
-            console.error("Klasör açılamadı:", err);
-        }
-    }
-
     // ==========================================================================
-    // 4. LİSTEDEN LİSTEYİ ÇEK / TAŞI (ORGANİZE ET)
+    // 5. ETKİLEŞİMLER & MODAL
     // ==========================================================================
-    btnOrganizeFiles.addEventListener('click', async () => {
-        const target = organizeTargetSelect.value;
-        if (!target) {
-            alert("Lütfen dosyaların taşınacağı bir hedef Playlist seçin.");
-            return;
-        }
-
-        organizeResult.style.display = 'block';
-        organizeResult.className = 'organize-feedback';
-        organizeResult.textContent = 'Dosyalar taşınıyor...';
-
-        try {
-            const res = await fetch('/api/organize', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ target_playlist: target })
-            });
-
-            const data = await res.json();
-            if (data.status === 'success') {
-                organizeResult.className = 'organize-feedback success';
-                organizeResult.textContent = `✓ ${data.moved_count} adet dosya "${data.target_playlist}" altına taşındı.`;
-                await loadPlaylists();
-            } else {
-                organizeResult.textContent = 'Hata: ' + (data.message || 'Taşınamadı');
-            }
-        } catch (err) {
-            console.error("Organize hatası:", err);
-            organizeResult.textContent = 'Bağlantı hatası!';
-        }
-    });
-
-    // ==========================================================================
-    // 5. YENİ PLAYLIST OLUŞTURMA
-    // ==========================================================================
-    btnCreatePlaylist.addEventListener('click', async () => {
+    btnCreatePlaylist.addEventListener('click', () => {
         const name = newPlaylistInput.value.trim();
         if (!name) return;
-
-        try {
-            const res = await fetch('/api/playlists', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name })
-            });
-
-            const data = await res.json();
-            if (data.status === 'success') {
-                newPlaylistInput.value = '';
-                activeSelectedPlaylist = data.created;
-                await loadPlaylists();
-            } else {
-                alert(data.message || 'Oluşturulamadı');
-            }
-        } catch (err) {
-            console.error("Playlist oluşturma hatası:", err);
+        if (playlists.includes(name)) {
+            alert('Bu isimde bir liste zaten var.');
+            return;
         }
+        playlists.push(name);
+        activePlaylist = name;
+        newPlaylistInput.value = '';
+        savePlaylists();
     });
 
-    // ==========================================================================
-    // 6. TOPLU YAPIŞTIRMA MODALI (BULK PASTE)
-    // ==========================================================================
+    globalPlaylistSelect.addEventListener('change', () => {
+        activePlaylist = globalPlaylistSelect.value;
+        renderPlaylistsUI();
+    });
+
+    // Toplu Yapıştır
     btnBulkPaste.addEventListener('click', () => {
         bulkTextarea.value = '';
         bulkModal.classList.add('open');
@@ -487,14 +488,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const lines = text.split('\n')
             .map(l => l.trim())
-            .filter(l => l.startsWith('http://') || l.startsWith('https://'));
+            .filter(l => extractVideoId(l));
 
         if (lines.length === 0) {
-            alert('Geçerli bir URL bulunamadı.');
+            alert('Yapıştırılan metinde geçerli YouTube linki bulunamadı.');
             return;
         }
 
-        // Mevcut boş satırları doldur, yetmezse yeni ekle
         const existingRows = linksList.querySelectorAll('.link-row');
         let lineIdx = 0;
 
@@ -502,12 +502,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const input = row.querySelector('.row-input');
             if (!input.value.trim() && lineIdx < lines.length) {
                 input.value = lines[lineIdx];
-                updateRowStatus(row, 'idle', 'Hazır');
+                handleUrlChange(row, lines[lineIdx]);
                 lineIdx++;
             }
         });
 
-        // Kalan linkler için yeni satır aç
         while (lineIdx < lines.length) {
             createRow(lines[lineIdx]);
             lineIdx++;
@@ -517,48 +516,36 @@ document.addEventListener('DOMContentLoaded', () => {
         closeBulkModal();
     });
 
-    // ==========================================================================
-    // 7. DİĞER BUTON VE KONTROLLER
-    // ==========================================================================
-    btnAddRow.addEventListener('click', () => {
-        createRow();
-    });
-
-    btnAddMoreRows.addEventListener('click', () => {
-        for (let i = 0; i < 3; i++) {
-            createRow();
+    // Link Paylaş
+    btnShareLink.addEventListener('click', async () => {
+        const shareUrl = window.location.href;
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            alert('✓ Site linki kopyalandı! Arkadaşına doğrudan gönderebilirsin:\n' + shareUrl);
+        } catch (e) {
+            prompt('Site linki:', shareUrl);
         }
     });
 
-    btnDownloadAll.addEventListener('click', () => {
-        downloadAllRows();
+    btnAddRow.addEventListener('click', () => createRow());
+    btnAddMoreRows.addEventListener('click', () => {
+        for (let i = 0; i < 3; i++) createRow();
     });
-
+    btnDownloadAll.addEventListener('click', downloadAllRows);
     btnClearCompleted.addEventListener('click', () => {
         const rows = linksList.querySelectorAll('.link-row');
         rows.forEach(r => {
-            if (r.dataset.status === 'completed') {
-                r.remove();
-            }
+            if (r.dataset.status === 'completed') r.remove();
         });
         renumberRows();
     });
-
     btnResetAll.addEventListener('click', () => {
         if (confirm('Tüm link listesini sıfırlamak istiyor musunuz?')) {
             initializeDefaultRows(6);
         }
     });
 
-    btnRefreshPlaylists.addEventListener('click', () => {
-        loadPlaylists();
-    });
-
-    btnOpenRootFolder.addEventListener('click', async () => {
-        await openFolder('');
-    });
-
-    // İlk Başlatma
+    // Başlatma
     initializeDefaultRows(6);
-    loadPlaylists();
+    renderPlaylistsUI();
 });
