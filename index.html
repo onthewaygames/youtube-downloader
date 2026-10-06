@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube MP4 Downloader & Playlist Studio</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- ÜST BAŞLIK BARI -->
+        <header class="app-header">
+            <div class="header-brand">
+                <div class="brand-badge">YT // MP4</div>
+                <div class="brand-titles">
+                    <h1>YouTube Studio Downloader</h1>
+                    <span class="brand-subtitle">Çoklu MP4/MP3 İndirme & Otomatik Playlist Düzenleyici</span>
+                </div>
+            </div>
+            <div class="header-status">
+                <div class="status-indicator online">
+                    <span class="dot"></span> Sunucu Aktif (Port 5050)
+                </div>
+                <button id="btnOpenRootFolder" class="btn btn-secondary btn-sm" title="Downloads Ana Klasörünü Aç">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    Downloads Klasörü
+                </button>
+            </div>
+        </header>
+
+        <!-- ANA ÇALIŞMA ALANI -->
+        <main class="app-main">
+            <!-- SOL SÜTUN: LİNK LİSTESİ VE İNDİRME MERKEZİ -->
+            <section class="download-section">
+                <!-- KONTROL ARAÇ ÇUBUĞU -->
+                <div class="control-panel">
+                    <div class="panel-group">
+                        <div class="control-item">
+                            <label for="globalPlaylistSelect">🎯 Hedef Playlist:</label>
+                            <select id="globalPlaylistSelect" class="form-select">
+                                <option value="">Genel İndirilenler (Kök)</option>
+                            </select>
+                        </div>
+                        <div class="control-item">
+                            <label for="globalFormatSelect">🎬 Çözünürlük / Format:</label>
+                            <select id="globalFormatSelect" class="form-select">
+                                <option value="mp4" selected>MP4 — En Yüksek Kalite</option>
+                                <option value="1080p">MP4 — 1080p Full HD</option>
+                                <option value="720p">MP4 — 720p HD</option>
+                                <option value="mp3">MP3 — Ses (320 kbps)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="panel-actions">
+                        <button id="btnBulkPaste" class="btn btn-secondary" title="Toplu link yapıştırma penceresini aç">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                            Toplu Yapıştır
+                        </button>
+                        <button id="btnAddRow" class="btn btn-secondary" title="Yeni bir link satırı ekle">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            Link Ekle
+                        </button>
+                        <button id="btnDownloadAll" class="btn btn-primary" title="Listelenen tüm linkleri sırayla indir">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Tümünü İndir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- LİNK LİSTESİ TABLOSU / SATIRLARI -->
+                <div class="links-container">
+                    <div class="links-header">
+                        <span>#</span>
+                        <span>YouTube Video URL</span>
+                        <span>Format</span>
+                        <span>Durum / İlerleme</span>
+                        <span>İşlem</span>
+                    </div>
+                    <div id="linksList" class="links-list">
+                        <!-- 6 varsayılan satır JS tarafından dinamik oluşturulacak -->
+                    </div>
+                </div>
+
+                <!-- LİSTE ALTI EK HIZLI BUTONLAR -->
+                <div class="links-footer">
+                    <button id="btnAddMoreRows" class="btn btn-ghost">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        + 3 Satır Daha Ekle
+                    </button>
+                    <button id="btnClearCompleted" class="btn btn-ghost">Tamamlananları Temizle</button>
+                    <button id="btnResetAll" class="btn btn-ghost text-danger">Tümünü Sıfırla (6 Sıra)</button>
+                </div>
+            </section>
+
+            <!-- SAĞ SÜTUN: PLAYLIST VE DOSYA ORGANİZASYONU -->
+            <aside class="sidebar-section">
+                <!-- YENİ PLAYLIST OLUŞTURMA -->
+                <div class="card playlist-creator-card">
+                    <div class="card-header">
+                        <h3>📂 Çalma Listeleri (Playlists)</h3>
+                        <span class="badge" id="playlistCountBadge">0 Liste</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="input-action-group">
+                            <input type="text" id="newPlaylistInput" placeholder="Yeni Playlist Adı (Örn: Müzikler)..." class="form-input">
+                            <button id="btnCreatePlaylist" class="btn btn-accent">Oluştur</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LİSTEDEN LİSTEYİ ÇEK / DÜZENLE MODÜLÜ -->
+                <div class="card organize-card">
+                    <div class="card-header">
+                        <h3>⚡ Listeden Listeyi Çek / Taşı</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">
+                            İndirilmiş tüm dağınık dosyaları tarar ve seçtiğin çalma listesinin klasörü altına taşır.
+                        </p>
+                        <div class="organize-controls">
+                            <select id="organizeTargetSelect" class="form-select">
+                                <option value="">Hedef Playlist Seçin...</option>
+                            </select>
+                            <button id="btnOrganizeFiles" class="btn btn-secondary w-100">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                                Dosyaları Bu Listeye Taşı
+                            </button>
+                        </div>
+                        <div id="organizeResult" class="organize-feedback"></div>
+                    </div>
+                </div>
+
+                <!-- PLAYLIST KARTLARI LİSTESİ -->
+                <div class="card playlist-list-card">
+                    <div class="card-header">
+                        <h3>Kayıtlı Klasörler</h3>
+                        <button id="btnRefreshPlaylists" class="btn-icon" title="Yenile">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="playlistsList" class="playlists-container">
+                            <!-- JS tarafından doldurulacak -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AKTİF KLASÖR İÇERİĞİ / İNDİRİLENLER KÜTÜPHANESİ -->
+                <div class="card files-card">
+                    <div class="card-header">
+                        <h3 id="currentFolderTitle">📁 İndirilen Dosyalar</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="folderFilesList" class="folder-files-container">
+                            <!-- Dosyalar listelenecek -->
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- TOPLU YAPIŞTIRMA MODALI -->
+        <div id="bulkModal" class="modal-backdrop">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3>📋 Toplu YouTube Linki Yapıştır</h3>
+                    <button id="btnCloseBulkModal" class="btn-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Her satıra bir YouTube linki gelecek şekilde yapıştırın:</p>
+                    <textarea id="bulkTextarea" placeholder="https://www.youtube.com/watch?v=...&#10;https://www.youtube.com/watch?v=...&#10;https://youtu.be/..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnCancelBulk" class="btn btn-ghost">Vazgeç</button>
+                    <button id="btnApplyBulk" class="btn btn-primary">Listeye Ekle</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
