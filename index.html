@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YouTube MP3 Studio — Çoklu Müzik İndirici & Playlist</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2.2">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -41,7 +41,7 @@
                         <div class="control-item">
                             <label for="globalPlaylistSelect">🎯 Aktif Playlist / Kategori:</label>
                             <select id="globalPlaylistSelect" class="form-select">
-                                <option value="Genel">Genel Müzikler</option>
+                                <option value="Genel Müzikler">Genel Müzikler</option>
                             </select>
                         </div>
                         <div class="control-item">
@@ -69,7 +69,7 @@
                     </div>
                 </div>
 
-                <!-- LİNK LİSTESİ TABLOSU / SATIRLARI -->
+                <!-- LİNK LİSTESİ TABLOSU / SATIRLARI (STATİK 6 HAZIR SIRA) -->
                 <div class="links-container">
                     <div class="links-header">
                         <span>#</span>
@@ -79,7 +79,102 @@
                         <span>İşlem</span>
                     </div>
                     <div id="linksList" class="links-list">
-                        <!-- 6 varsayılan satır dinamik oluşturulacak -->
+                        <!-- SIRA 1 -->
+                        <div class="link-row" id="row_static_1" data-status="idle">
+                            <div class="row-index">#01</div>
+                            <div class="row-url-wrapper">
+                                <input type="text" class="form-input row-input" placeholder="YouTube linki yapıştırın...">
+                                <button class="btn-paste-row" title="Panodan Yapıştır">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                                </button>
+                            </div>
+                            <div class="row-preview"><div class="preview-card-empty">Link Bekleniyor</div></div>
+                            <div class="row-status-wrapper"><div class="status-badge status-idle"><span class="status-text">Boş</span></div></div>
+                            <div class="row-actions">
+                                <button class="btn-row-action btn-row-download" title="MP3 İndir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+                                <button class="btn-row-action delete btn-row-delete" title="Satırı Sil"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                            </div>
+                        </div>
+                        <!-- SIRA 2 -->
+                        <div class="link-row" id="row_static_2" data-status="idle">
+                            <div class="row-index">#02</div>
+                            <div class="row-url-wrapper">
+                                <input type="text" class="form-input row-input" placeholder="YouTube linki yapıştırın...">
+                                <button class="btn-paste-row" title="Panodan Yapıştır">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                                </button>
+                            </div>
+                            <div class="row-preview"><div class="preview-card-empty">Link Bekleniyor</div></div>
+                            <div class="row-status-wrapper"><div class="status-badge status-idle"><span class="status-text">Boş</span></div></div>
+                            <div class="row-actions">
+                                <button class="btn-row-action btn-row-download" title="MP3 İndir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+                                <button class="btn-row-action delete btn-row-delete" title="Satırı Sil"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                            </div>
+                        </div>
+                        <!-- SIRA 3 -->
+                        <div class="link-row" id="row_static_3" data-status="idle">
+                            <div class="row-index">#03</div>
+                            <div class="row-url-wrapper">
+                                <input type="text" class="form-input row-input" placeholder="YouTube linki yapıştırın...">
+                                <button class="btn-paste-row" title="Panodan Yapıştır">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                                </button>
+                            </div>
+                            <div class="row-preview"><div class="preview-card-empty">Link Bekleniyor</div></div>
+                            <div class="row-status-wrapper"><div class="status-badge status-idle"><span class="status-text">Boş</span></div></div>
+                            <div class="row-actions">
+                                <button class="btn-row-action btn-row-download" title="MP3 İndir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+                                <button class="btn-row-action delete btn-row-delete" title="Satırı Sil"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                            </div>
+                        </div>
+                        <!-- SIRA 4 -->
+                        <div class="link-row" id="row_static_4" data-status="idle">
+                            <div class="row-index">#04</div>
+                            <div class="row-url-wrapper">
+                                <input type="text" class="form-input row-input" placeholder="YouTube linki yapıştırın...">
+                                <button class="btn-paste-row" title="Panodan Yapıştır">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                                </button>
+                            </div>
+                            <div class="row-preview"><div class="preview-card-empty">Link Bekleniyor</div></div>
+                            <div class="row-status-wrapper"><div class="status-badge status-idle"><span class="status-text">Boş</span></div></div>
+                            <div class="row-actions">
+                                <button class="btn-row-action btn-row-download" title="MP3 İndir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+                                <button class="btn-row-action delete btn-row-delete" title="Satırı Sil"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                            </div>
+                        </div>
+                        <!-- SIRA 5 -->
+                        <div class="link-row" id="row_static_5" data-status="idle">
+                            <div class="row-index">#05</div>
+                            <div class="row-url-wrapper">
+                                <input type="text" class="form-input row-input" placeholder="YouTube linki yapıştırın...">
+                                <button class="btn-paste-row" title="Panodan Yapıştır">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                                </button>
+                            </div>
+                            <div class="row-preview"><div class="preview-card-empty">Link Bekleniyor</div></div>
+                            <div class="row-status-wrapper"><div class="status-badge status-idle"><span class="status-text">Boş</span></div></div>
+                            <div class="row-actions">
+                                <button class="btn-row-action btn-row-download" title="MP3 İndir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+                                <button class="btn-row-action delete btn-row-delete" title="Satırı Sil"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                            </div>
+                        </div>
+                        <!-- SIRA 6 -->
+                        <div class="link-row" id="row_static_6" data-status="idle">
+                            <div class="row-index">#06</div>
+                            <div class="row-url-wrapper">
+                                <input type="text" class="form-input row-input" placeholder="YouTube linki yapıştırın...">
+                                <button class="btn-paste-row" title="Panodan Yapıştır">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                                </button>
+                            </div>
+                            <div class="row-preview"><div class="preview-card-empty">Link Bekleniyor</div></div>
+                            <div class="row-status-wrapper"><div class="status-badge status-idle"><span class="status-text">Boş</span></div></div>
+                            <div class="row-actions">
+                                <button class="btn-row-action btn-row-download" title="MP3 İndir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+                                <button class="btn-row-action delete btn-row-delete" title="Satırı Sil"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -166,6 +261,6 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=2.2"></script>
 </body>
 </html>

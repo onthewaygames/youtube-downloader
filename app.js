@@ -1,5 +1,5 @@
 // ==========================================================================
-// YOUTUBE MP3 STUDIO — FRONTEND CONTROLLER
+// YOUTUBE MP3 STUDIO — FRONTEND CONTROLLER v2.2
 // 100% Client-Side Cloud Mode & Localhost Dual Engine
 // ==========================================================================
 
@@ -38,16 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const bulkTextarea = document.getElementById('bulkTextarea');
 
     // Durum Değişkenleri
-    let rowCounter = 0;
     let playlists = JSON.parse(localStorage.getItem('yt_mp3_playlists') || '["Genel Müzikler"]');
     let activePlaylist = playlists[0];
     let downloadHistory = JSON.parse(localStorage.getItem('yt_mp3_history') || '[]');
 
-    // Ortam Başlığı Güncelle
-    if (isLocalMode) {
-        envText.textContent = "Yerel Motor (Port 5050)";
-    } else {
-        envText.textContent = "Bulut Modu (7/24 Canlı)";
+    // Ortam Başlığı
+    if (envText) {
+        envText.textContent = isLocalMode ? "Yerel Motor (Port 5050)" : "Bulut Modu (7/24 Canlı)";
     }
 
     // ==========================================================================
@@ -82,16 +79,65 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================================
-    // 2. DİNAMİK SATIR YÖNETİMİ
+    // 2. SATIR BAĞLAMA VE YÖNETİMİ
     // ==========================================================================
-    function createRow(initialUrl = '') {
-        rowCounter++;
-        const rowId = `row_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-        const indexNumber = String(linksList.children.length + 1).padStart(2, '0');
+    function bindRowEvents(row) {
+        const input = row.querySelector('.row-input');
+        const pasteBtn = row.querySelector('.btn-paste-row');
+        const downloadBtn = row.querySelector('.btn-row-download');
+        const deleteBtn = row.querySelector('.btn-row-delete');
 
+        if (!input) return;
+
+        // Pano Yapıştırma
+        if (pasteBtn) {
+            pasteBtn.onclick = async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text && text.trim()) {
+                        input.value = text.trim();
+                        handleUrlChange(row, input.value.trim());
+                    }
+                } catch (err) {
+                    console.error("Pano hatası:", err);
+                }
+            };
+        }
+
+        // Input Değişimi
+        let debounceTimer;
+        input.oninput = () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                handleUrlChange(row, input.value.trim());
+            }, 300);
+        };
+
+        // İndir Butonu
+        if (downloadBtn) {
+            downloadBtn.onclick = () => {
+                downloadSingleRow(row);
+            };
+        }
+
+        // Sil Butonu
+        if (deleteBtn) {
+            deleteBtn.onclick = () => {
+                if (linksList.children.length > 1) {
+                    row.remove();
+                    renumberRows();
+                } else {
+                    input.value = '';
+                    handleUrlChange(row, '');
+                }
+            };
+        }
+    }
+
+    function createRow(initialUrl = '') {
+        const indexNumber = String(linksList.children.length + 1).padStart(2, '0');
         const row = document.createElement('div');
         row.className = 'link-row';
-        row.id = rowId;
         row.dataset.status = 'idle';
 
         row.innerHTML = `
@@ -102,67 +148,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
                 </button>
             </div>
-            <div class="row-preview">
-                <div class="preview-card-empty">Link Bekleniyor</div>
-            </div>
-            <div class="row-status-wrapper">
-                <div class="status-badge status-idle">
-                    <span class="status-text">Boş</span>
-                </div>
-            </div>
+            <div class="row-preview"><div class="preview-card-empty">Link Bekleniyor</div></div>
+            <div class="row-status-wrapper"><div class="status-badge status-idle"><span class="status-text">Boş</span></div></div>
             <div class="row-actions">
-                <button class="btn-row-action btn-row-download" title="MP3 İndir">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                </button>
-                <button class="btn-row-action delete btn-row-delete" title="Satırı Sil">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
+                <button class="btn-row-action btn-row-download" title="MP3 İndir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+                <button class="btn-row-action delete btn-row-delete" title="Satırı Sil"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             </div>
         `;
 
-        const input = row.querySelector('.row-input');
-        const pasteBtn = row.querySelector('.btn-paste-row');
-        const downloadBtn = row.querySelector('.btn-row-download');
-        const deleteBtn = row.querySelector('.btn-row-delete');
-
-        // Pano Yapıştırma
-        pasteBtn.addEventListener('click', async () => {
-            try {
-                const text = await navigator.clipboard.readText();
-                if (text && text.trim()) {
-                    input.value = text.trim();
-                    handleUrlChange(row, input.value.trim());
-                }
-            } catch (err) {
-                console.error("Pano hatası:", err);
-            }
-        });
-
-        // Input Değişimi
-        let debounceTimer;
-        input.addEventListener('input', () => {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                handleUrlChange(row, input.value.trim());
-            }, 300);
-        });
-
-        // İndir Butonu
-        downloadBtn.addEventListener('click', () => {
-            downloadSingleRow(row);
-        });
-
-        // Sil Butonu
-        deleteBtn.addEventListener('click', () => {
-            if (linksList.children.length > 1) {
-                row.remove();
-                renumberRows();
-            } else {
-                input.value = '';
-                handleUrlChange(row, '');
-            }
-        });
-
+        bindRowEvents(row);
         linksList.appendChild(row);
 
         if (initialUrl) {
@@ -177,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const videoId = extractVideoId(url);
 
         if (!videoId) {
-            previewEl.innerHTML = `<div class="preview-card-empty">Link Bekleniyor</div>`;
+            if (previewEl) previewEl.innerHTML = `<div class="preview-card-empty">Link Bekleniyor</div>`;
             updateRowStatus(row, 'idle', url ? 'Geçersiz Link' : 'Boş');
             row.dataset.title = '';
             row.dataset.videoId = '';
@@ -190,15 +184,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const details = await fetchVideoDetails(videoId);
         row.dataset.title = details.title;
 
-        previewEl.innerHTML = `
-            <div class="song-preview-card">
-                <img src="${details.thumb}" alt="Kapak" class="song-thumb">
-                <div class="song-info">
-                    <span class="song-title" title="${details.title}">${details.title}</span>
-                    <span class="song-artist">${details.author}</span>
+        if (previewEl) {
+            previewEl.innerHTML = `
+                <div class="song-preview-card">
+                    <img src="${details.thumb}" alt="Kapak" class="song-thumb">
+                    <div class="song-info">
+                        <span class="song-title" title="${details.title}">${details.title}</span>
+                        <span class="song-artist">${details.author}</span>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
 
         updateRowStatus(row, 'ready', '🎵 MP3 Hazır (320k)');
     }
@@ -218,23 +214,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const badge = row.querySelector('.status-badge');
         const statusText = row.querySelector('.status-text');
 
-        badge.className = `status-badge status-${state}`;
-        statusText.textContent = text;
+        if (badge) badge.className = `status-badge status-${state}`;
+        if (statusText) statusText.textContent = text;
     }
 
-    function initializeDefaultRows(count = 6) {
-        linksList.innerHTML = '';
-        for (let i = 0; i < count; i++) {
-            createRow();
+    // Mevcut sayfadaki satırları bağla
+    function initExistingRows() {
+        const rows = linksList.querySelectorAll('.link-row');
+        if (rows.length === 0) {
+            for (let i = 0; i < 6; i++) {
+                createRow();
+            }
+        } else {
+            rows.forEach(r => bindRowEvents(r));
         }
     }
 
     // ==========================================================================
-    // 3. İNDİRME TETİKLEYİCİSİ (BULUT & YEREL)
+    // 3. İNDİRME MOTORU
     // ==========================================================================
     async function downloadSingleRow(row) {
         const input = row.querySelector('.row-input');
-        const url = input.value.trim();
+        const url = input ? input.value.trim() : '';
         const videoId = row.dataset.videoId || extractVideoId(url);
 
         if (!videoId) {
@@ -245,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = row.dataset.title || "YouTube MP3";
         updateRowStatus(row, 'downloading', 'MP3 İndiriliyor...');
 
-        // 1. Eğer Yerel Moddaysa (Localhost Server)
+        // 1. Yerel Mod (Localhost Server)
         if (isLocalMode) {
             try {
                 const res = await fetch('/api/download', {
@@ -267,21 +268,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 2. Bulut / GitHub Pages Modu (Arkadaşının 7/24 kullandığı mod)
-        // Güvenilir doğrudan MP3 dönüştürücü köprüsü açılır
+        // 2. Bulut / GitHub Pages Modu (Arkadaşının 7/24 kullandığı doğrudan MP3 dönüştürme)
         try {
-            // Y2Mate doğrudan MP3 dönüştürme linki
             const directConverterUrl = `https://www.youtubepp.com/watch?v=${videoId}`;
-            
-            // Yeni güvenli sekmede MP3 indirme akışını başlat
             const win = window.open(directConverterUrl, '_blank');
             if (win) {
                 win.focus();
             }
 
             updateRowStatus(row, 'completed', 'İndirme Açıldı ✓');
-
-            // Geçmişe ekle
             addDownloadHistory(title, globalPlaylistSelect.value);
 
         } catch (e) {
@@ -322,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         rows.forEach(row => {
             const input = row.querySelector('.row-input');
-            const url = input.value.trim();
+            const url = input ? input.value.trim() : '';
             const videoId = extractVideoId(url);
 
             if (videoId) {
@@ -335,12 +330,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (count === 0) {
-            alert('Lütfen önce indirilecek en az bir YouTube linki yapıştırın.');
+            alert('Lütfen önce en az bir YouTube linki yapıştırın.');
         }
     }
 
     // ==========================================================================
-    // 4. PLAYLIST & GEÇMİŞ YÖNETİMİ (LOCALSTORAGE İLE 7/24 KALICI)
+    // 4. PLAYLIST & GEÇMİŞ YÖNETİMİ
     // ==========================================================================
     function savePlaylists() {
         localStorage.setItem('yt_mp3_playlists', JSON.stringify(playlists));
@@ -348,19 +343,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderPlaylistsUI() {
+        if (!globalPlaylistSelect || !playlistsList) return;
+
         globalPlaylistSelect.innerHTML = '';
         playlistsList.innerHTML = '';
-        playlistCountBadge.textContent = `${playlists.length} Liste`;
+        if (playlistCountBadge) playlistCountBadge.textContent = `${playlists.length} Liste`;
 
         playlists.forEach(pl => {
-            // Dropdown seçeneği
             const opt = document.createElement('option');
             opt.value = pl;
             opt.textContent = pl;
             if (pl === activePlaylist) opt.selected = true;
             globalPlaylistSelect.appendChild(opt);
 
-            // Sağ liste kartı
             const item = document.createElement('div');
             item.className = `playlist-item ${activePlaylist === pl ? 'active' : ''}`;
             const count = downloadHistory.filter(h => h.playlist === pl).length;
@@ -382,7 +377,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 activePlaylist = pl;
                 globalPlaylistSelect.value = pl;
                 renderPlaylistsUI();
-                renderHistoryUI();
             });
 
             const delBtn = item.querySelector('.btn-delete-pl');
@@ -417,9 +411,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderHistoryUI() {
+        if (!folderFilesList) return;
+
         const currentList = downloadHistory.filter(h => h.playlist === activePlaylist);
-        currentFolderTitle.textContent = `🎵 ${activePlaylist}`;
-        downloadedCountBadge.textContent = `${currentList.length} MP3`;
+        if (currentFolderTitle) currentFolderTitle.textContent = `🎵 ${activePlaylist}`;
+        if (downloadedCountBadge) downloadedCountBadge.textContent = `${currentList.length} MP3`;
         folderFilesList.innerHTML = '';
 
         if (currentList.length === 0) {
@@ -447,105 +443,122 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // 5. ETKİLEŞİMLER & MODAL
     // ==========================================================================
-    btnCreatePlaylist.addEventListener('click', () => {
-        const name = newPlaylistInput.value.trim();
-        if (!name) return;
-        if (playlists.includes(name)) {
-            alert('Bu isimde bir liste zaten var.');
-            return;
-        }
-        playlists.push(name);
-        activePlaylist = name;
-        newPlaylistInput.value = '';
-        savePlaylists();
-    });
-
-    globalPlaylistSelect.addEventListener('change', () => {
-        activePlaylist = globalPlaylistSelect.value;
-        renderPlaylistsUI();
-    });
-
-    // Toplu Yapıştır
-    btnBulkPaste.addEventListener('click', () => {
-        bulkTextarea.value = '';
-        bulkModal.classList.add('open');
-        bulkTextarea.focus();
-    });
-
-    function closeBulkModal() {
-        bulkModal.classList.remove('open');
+    if (btnCreatePlaylist) {
+        btnCreatePlaylist.addEventListener('click', () => {
+            const name = newPlaylistInput.value.trim();
+            if (!name) return;
+            if (playlists.includes(name)) {
+                alert('Bu isimde bir liste zaten var.');
+                return;
+            }
+            playlists.push(name);
+            activePlaylist = name;
+            newPlaylistInput.value = '';
+            savePlaylists();
+        });
     }
 
-    btnCloseBulkModal.addEventListener('click', closeBulkModal);
-    btnCancelBulk.addEventListener('click', closeBulkModal);
+    if (globalPlaylistSelect) {
+        globalPlaylistSelect.addEventListener('change', () => {
+            activePlaylist = globalPlaylistSelect.value;
+            renderPlaylistsUI();
+        });
+    }
 
-    btnApplyBulk.addEventListener('click', () => {
-        const text = bulkTextarea.value.trim();
-        if (!text) {
-            closeBulkModal();
-            return;
-        }
+    // Toplu Yapıştır
+    if (btnBulkPaste) {
+        btnBulkPaste.addEventListener('click', () => {
+            bulkTextarea.value = '';
+            bulkModal.classList.add('open');
+            bulkTextarea.focus();
+        });
+    }
 
-        const lines = text.split('\n')
-            .map(l => l.trim())
-            .filter(l => extractVideoId(l));
+    function closeBulkModal() {
+        if (bulkModal) bulkModal.classList.remove('open');
+    }
 
-        if (lines.length === 0) {
-            alert('Yapıştırılan metinde geçerli YouTube linki bulunamadı.');
-            return;
-        }
+    if (btnCloseBulkModal) btnCloseBulkModal.addEventListener('click', closeBulkModal);
+    if (btnCancelBulk) btnCancelBulk.addEventListener('click', closeBulkModal);
 
-        const existingRows = linksList.querySelectorAll('.link-row');
-        let lineIdx = 0;
+    if (btnApplyBulk) {
+        btnApplyBulk.addEventListener('click', () => {
+            const text = bulkTextarea.value.trim();
+            if (!text) {
+                closeBulkModal();
+                return;
+            }
 
-        existingRows.forEach(row => {
-            const input = row.querySelector('.row-input');
-            if (!input.value.trim() && lineIdx < lines.length) {
-                input.value = lines[lineIdx];
-                handleUrlChange(row, lines[lineIdx]);
+            const lines = text.split('\n')
+                .map(l => l.trim())
+                .filter(l => extractVideoId(l));
+
+            if (lines.length === 0) {
+                alert('Yapıştırılan metinde geçerli YouTube linki bulunamadı.');
+                return;
+            }
+
+            const existingRows = linksList.querySelectorAll('.link-row');
+            let lineIdx = 0;
+
+            existingRows.forEach(row => {
+                const input = row.querySelector('.row-input');
+                if (input && !input.value.trim() && lineIdx < lines.length) {
+                    input.value = lines[lineIdx];
+                    handleUrlChange(row, lines[lineIdx]);
+                    lineIdx++;
+                }
+            });
+
+            while (lineIdx < lines.length) {
+                createRow(lines[lineIdx]);
                 lineIdx++;
             }
+
+            renumberRows();
+            closeBulkModal();
         });
-
-        while (lineIdx < lines.length) {
-            createRow(lines[lineIdx]);
-            lineIdx++;
-        }
-
-        renumberRows();
-        closeBulkModal();
-    });
+    }
 
     // Link Paylaş
-    btnShareLink.addEventListener('click', async () => {
-        const shareUrl = window.location.href;
-        try {
-            await navigator.clipboard.writeText(shareUrl);
-            alert('✓ Site linki kopyalandı! Arkadaşına doğrudan gönderebilirsin:\n' + shareUrl);
-        } catch (e) {
-            prompt('Site linki:', shareUrl);
-        }
-    });
+    if (btnShareLink) {
+        btnShareLink.addEventListener('click', async () => {
+            const shareUrl = window.location.href;
+            try {
+                await navigator.clipboard.writeText(shareUrl);
+                alert('✓ Site linki kopyalandı! Arkadaşına gönderebilirsin:\n' + shareUrl);
+            } catch (e) {
+                prompt('Site linki:', shareUrl);
+            }
+        });
+    }
 
-    btnAddRow.addEventListener('click', () => createRow());
-    btnAddMoreRows.addEventListener('click', () => {
+    if (btnAddRow) btnAddRow.addEventListener('click', () => createRow());
+    if (btnAddMoreRows) btnAddMoreRows.addEventListener('click', () => {
         for (let i = 0; i < 3; i++) createRow();
     });
-    btnDownloadAll.addEventListener('click', downloadAllRows);
-    btnClearCompleted.addEventListener('click', () => {
-        const rows = linksList.querySelectorAll('.link-row');
-        rows.forEach(r => {
-            if (r.dataset.status === 'completed') r.remove();
+    if (btnDownloadAll) btnDownloadAll.addEventListener('click', downloadAllRows);
+    if (btnClearCompleted) {
+        btnClearCompleted.addEventListener('click', () => {
+            const rows = linksList.querySelectorAll('.link-row');
+            rows.forEach(r => {
+                if (r.dataset.status === 'completed') r.remove();
+            });
+            renumberRows();
         });
-        renumberRows();
-    });
-    btnResetAll.addEventListener('click', () => {
-        if (confirm('Tüm link listesini sıfırlamak istiyor musunuz?')) {
-            initializeDefaultRows(6);
-        }
-    });
+    }
+    if (btnResetAll) {
+        btnResetAll.addEventListener('click', () => {
+            if (confirm('Tüm link listesini sıfırlamak istiyor musunuz?')) {
+                linksList.innerHTML = '';
+                for (let i = 0; i < 6; i++) {
+                    createRow();
+                }
+            }
+        });
+    }
 
     // Başlatma
-    initializeDefaultRows(6);
+    initExistingRows();
     renderPlaylistsUI();
 });
