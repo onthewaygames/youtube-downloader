@@ -41,7 +41,16 @@ def home():
 @app.get("/api/info")
 def get_info(url: str = Query(...)):
     """Şarkı başlığı ve kapak görselini döner"""
-    ydl_opts = {"quiet": True, "noplaylist": True, "no_warnings": True}
+    ydl_opts = {
+        "quiet": True,
+        "noplaylist": True,
+        "no_warnings": True,
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "tv"]
+            }
+        }
+    }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -61,59 +70,79 @@ def download_mp3(url: str = Query(...), background_tasks: BackgroundTasks = None
     task_id = str(uuid.uuid4())[:8]
     output_template = os.path.join(TEMP_DIR, f"{task_id}_%(title)s.%(ext)s")
 
-    ydl_opts = {
-        "format": "bestaudio/best",
-        "outtmpl": output_template,
-        "noplaylist": True,
-        "quiet": True,
-        "no_warnings": True,
-        "postprocessors": [{
-            "key": "FFmpegExtractAudio",
-            "preferredcodec": "mp3",
-            "preferredquality": "320",
-        }]
-    }
+    client_strategies = [
+        ["android", "tv"],
+        ["android"],
+        ["tv", "web"]
+    ]
 
-    # Yerel ortamda bin/ffmpeg.exe varsa kullan
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    local_ffmpeg = os.path.join(base_dir, "bin", "ffmpeg.exe")
-    if os.path.exists(local_ffmpeg):
-        ydl_opts["ffmpeg_location"] = os.path.join(base_dir, "bin")
-
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            title = info.get("title", "music")
-            safe_title = "".join(c for c in title if c not in '<>:"/\\|?*').strip() or "song"
-
-            # İndirilen MP3 dosyasını bul
-            expected_prefix = f"{task_id}_"
-            target_file = None
-            for f in os.listdir(TEMP_DIR):
-                if f.startswith(expected_prefix) and f.endswith(".mp3"):
-                    target_file = os.path.join(TEMP_DIR, f)
-                    break
-
-            if not target_file or not os.path.exists(target_file):
-                raise HTTPException(status_code=500, detail="MP3 dönüştürme tamamlanamadı.")
-
-            # İndirme bitince arka planda dosyayı diskten sil
-            if background_tasks:
-                background_tasks.add_task(cleanup_file, target_file)
-
-            encoded_filename = urllib.parse.quote(f"{safe_title}.mp3")
-            return FileResponse(
-                path=target_file,
-                media_type="audio/mpeg",
-                filename=f"{safe_title}.mp3",
-                headers={
-                    "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
+    last_error = None
+    for clients in client_strategies:
+        ydl_opts = {
+            "format": "bestaudio/best",
+            "outtmpl": output_template,
+            "noplaylist": True,
+            "quiet": True,
+            "no_warnings": True,
+            "extractor_args": {
+                "youtube": {
+                    "player_client": clients
                 }
-            )
+            },
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "Accept-Language": "en-US,en;q=0.9",
+            },
+            "postprocessors": [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "320",
+            }]
+        }
 
-    except Exception as e:
-        print(f"[İNDİRME HATA] {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Yerel ortamda bin/ffmpeg.exe varsa kullan
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        local_ffmpeg = os.path.join(base_dir, "bin", "ffmpeg.exe")
+        if os.path.exists(local_ffmpeg):
+            ydl_opts["ffmpeg_location"] = os.path.join(base_dir, "bin")
+
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                title = info.get("title", "music")
+                safe_title = "".join(c for c in title if c not in '<>:"/\\|?*').strip() or "song"
+
+                # İndirilen MP3 dosyasını bul
+                expected_prefix = f"{task_id}_"
+                target_file = None
+                for f in os.listdir(TEMP_DIR):
+                    if f.startswith(expected_prefix) and f.endswith(".mp3"):
+                        target_file = os.path.join(TEMP_DIR, f)
+                        break
+
+                if not target_file or not os.path.exists(target_file):
+                    raise Exception("MP3 dönüştürme tamamlanamadı.")
+
+                # İndirme bitince arka planda dosyayı diskten sil
+                if background_tasks:
+                    background_tasks.add_task(cleanup_file, target_file)
+
+                encoded_filename = urllib.parse.quote(f"{safe_title}.mp3")
+                return FileResponse(
+                    path=target_file,
+                    media_type="audio/mpeg",
+                    filename=f"{safe_title}.mp3",
+                    headers={
+                        "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
+                    }
+                )
+        except Exception as e:
+            last_error = e
+            print(f"[İNDİRME DENEME HATA - {clients}] {e}")
+            continue
+
+    print(f"[İNDİRME TÜM DENEMELER BAŞARISIZ] {last_error}")
+    raise HTTPException(status_code=500, detail=str(last_error))
 
 if __name__ == "__main__":
     import uvicorn

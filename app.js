@@ -265,7 +265,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const res = await fetch(downloadEndpoint);
                 if (!res.ok) {
-                    throw new Error(`Sunucu Hatası: HTTP ${res.status}`);
+                    let errDetail = `HTTP ${res.status}`;
+                    try {
+                        const errJson = await res.json();
+                        if (errJson && errJson.detail) {
+                            errDetail = errJson.detail;
+                        }
+                    } catch (_) {}
+                    console.error("Bulut motoru hatası:", errDetail);
+                    updateRowStatus(row, 'error', 'İndirme Hatası');
+                    alert(`İndirme Hatası:\n${errDetail.substring(0, 120)}`);
+                    return;
                 }
                 
                 updateRowStatus(row, 'downloading', 'MP3 İndiriliyor...');
@@ -287,24 +297,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 addDownloadHistory(title, globalPlaylistSelect.value);
                 return;
             } catch (err) {
-                console.warn("Bulut motoru fetch hatası, doğrudan deneniyor:", err);
-                try {
-                    // Sayfa içi görünmez indirme tetikle (YENİ SEKME AÇMAZ!)
-                    const tempLink = document.createElement('a');
-                    tempLink.href = downloadEndpoint;
-                    tempLink.setAttribute('download', `${safeName}.mp3`);
-                    document.body.appendChild(tempLink);
-                    tempLink.click();
-                    tempLink.remove();
-
-                    updateRowStatus(row, 'completed', 'İndirme Başlatıldı ✓');
-                    addDownloadHistory(title, globalPlaylistSelect.value);
-                    return;
-                } catch (fallbackErr) {
-                    console.error("İndirme hatası:", fallbackErr);
-                    updateRowStatus(row, 'error', 'İndirme Hatası');
-                    return;
-                }
+                console.error("Bağlantı hatası:", err);
+                updateRowStatus(row, 'error', 'Bağlantı Hatası');
+                alert('Bulut motoruna bağlanılamadı. Lütfen motor durumunu kontrol edin.');
+                return;
             }
         }
 
